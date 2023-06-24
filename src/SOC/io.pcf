@@ -1,0 +1,5 @@
+set_io LED B6
+set_io CLK D1
+set_io RST A1
+set_io TXD C2
+set_io RXD E3

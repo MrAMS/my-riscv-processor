@@ -1,16 +1,25 @@
-dirname		:=	blinky
-filename	:=	$(dirname)/blinky
+# For ice40 FPGA
+TOP			:=	SOC
+dirname		:=	SOC
+filename	:=	$(dirname)/$(TOP)
 pcf_file	:=	$(dirname)/io.pcf
 
 ICELINK_DIR=$(shell df | grep iCELink | awk '{print $$6}')
 ${warning iCELink path: $(ICELINK_DIR)}
 
-build:
-	yosys -p "synth_ice40 -json $(filename).json -blif $(filename).blif" $(filename).v
+
+$(filename).json : $(dirname)/*.v
+	yosys -p "synth_ice40 -json $(filename).json -top $(TOP)" *.v
+
+$(filename).asc : $(filename).json
 	nextpnr-ice40 --lp1k --package cm36 --json $(filename).json --pcf $(pcf_file) --asc $(filename).asc --freq 48
+
+$(filename).bin : $(filename).asc 
 	icepack $(filename).asc $(filename).bin
 
-prog_flash:
+build : $(filename).bin
+
+prog_flash : $(filename).bin 
 # use shell command check if directory exist
 	@if [ -d '$(ICELINK_DIR)' ]; \
         then \
