@@ -1,17 +1,16 @@
 # For ice40 FPGA
 TOP			:=	SOC
-dirname		:=	SOC
-filename	:=	$(dirname)/$(TOP)
-pcf_file	:=	$(dirname)/io.pcf
+filename	:=	SOC
+pcf_file	:=	io.pcf
 
 ICELINK_DIR=$(shell df | grep iCELink | awk '{print $$6}')
 ${warning iCELink path: $(ICELINK_DIR)}
 
 
-$(filename).json : $(dirname)/*.v
-	yosys -p "synth_ice40 -json $(filename).json -top $(TOP)" *.v
+$(filename).json : *.v
+	yosys -p "synth_ice40 -json $(filename).json -top $(TOP)" $(filename).v
 
-$(filename).asc : $(filename).json
+$(filename).asc : $(filename).json io.pcf
 	nextpnr-ice40 --lp1k --package cm36 --json $(filename).json --pcf $(pcf_file) --asc $(filename).asc --freq 48
 
 $(filename).bin : $(filename).asc 
@@ -30,7 +29,7 @@ prog_flash : $(filename).bin
     fi
 
 sim:
-	iverilog -y $(dirname) $(filename)_tb.v -o $(filename)_tb
+	iverilog -y ./ $(filename)_tb.v -o $(filename)_tb
 	vvp -n $(filename)_tb -lxt2
 	gtkwave ./wave.vcd
 

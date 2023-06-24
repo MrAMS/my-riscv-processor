@@ -1,10 +1,10 @@
 `timescale 1ns/100ps
 module SOC_tb();
-    reg  CLK;
-    wire RST;
-    wire LED;
-    reg  RXD;
-    wire TXD;
+    reg         CLK;
+    reg         RST;
+    wire [7:0]  LED;
+    reg         RXD;
+    wire        TXD;
 
     SOC uut(
         .CLK(CLK),
@@ -19,6 +19,16 @@ module SOC_tb();
         forever begin
             #1 CLK = ~CLK;
         end
+    end
+
+    initial begin
+        RST = 1;
+        #2
+        RST = 0;
+        #10
+        RST = 1;
+        #10
+        RST = 0;
     end
 
     initial
