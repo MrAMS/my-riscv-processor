@@ -1,4 +1,6 @@
 `timescale 1ns/100ps
+`define TEST_BENCH
+`include "SOC.v"
 module SOC_tb();
     reg         CLK;
     reg         RST;
