@@ -81,19 +81,53 @@ module SOC(
     wire [31:0] Bimm={{20{instr[31]}}, instr[7],instr[30:25],instr[11:8],1'b0};
     wire [31:0] Jimm={{12{instr[31]}}, instr[19:12],instr[20],instr[30:21],1'b0};
 
+
+    reg [31:0] RegisterBank [0:31];
+    reg [31:0] rs1;
+    reg [31:0] rs2;
+    wire [31:0] writeBackData;
+    wire writeBackEn;
+
+    localparam FETCH_INSTR = 0;
+    localparam FETCH_REGS  = 1;
+    localparam EXECUTE     = 2;
+    reg [1:0] state = FETCH_INSTR;
+
     reg [4:0] PC;
     always @(posedge clk) begin
         if(!resetn) begin
             PC <= 0;
+            state <= FETCH_INSTR;
             instr <= 32'b0000000_00000_00000_000_00000_0110011; // NOP
-        end
-        else if(!isSYSTEM) begin
-	        instr <= MEM[PC];
-	        PC <= PC+1;
         end else begin
-            instr <= 32'b0000000_00000_00000_000_00000_0110011; // NOP
+            
+            if(writeBackEn && rdId != 0) begin
+                RegisterBank[rdId] <= writeBackData;
+            end
+
+            case(state)
+                FETCH_INSTR: begin
+                    instr <= MEM[PC];
+                    state <= FETCH_REGS;
+                end
+                FETCH_REGS: begin
+                    rs1 <= RegisterBank[rs1Id];
+                    rs2 <= RegisterBank[rs2Id];
+                    state <= EXECUTE;
+                end
+                EXECUTE: begin
+                    PC <= PC + 1;
+                    state <= FETCH_INSTR;	      
+                end
+            endcase
+
+            `ifdef TEST_BENCH      
+            if(isSYSTEM) $finish();
+            `endif 
         end
     end
+
+    
     assign LED = isSYSTEM ? 8'b1111_1111 : {PC[0],isALUreg,isALUimm,isLoad,isStore,3'b0};
     assign TXD = 1'b0;
 
