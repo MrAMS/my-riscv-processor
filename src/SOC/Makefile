@@ -31,6 +31,7 @@ prog_flash : $(filename).bin
 sim:
 	iverilog -y ./ -o $(filename)_tb $(filename)_tb.v
 	vvp -n $(filename)_tb -lxt2
+# Gtkwave on macOs see https://ughe.github.io/2018/11/06/gtkwave-osx
 	gtkwave ./wave.vcd
 
 clean:

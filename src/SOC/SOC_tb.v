@@ -37,7 +37,7 @@ module SOC_tb();
     begin            
         $dumpfile("wave.vcd");
         $dumpvars(0, SOC_tb);
-        #100;
+        #500;
         $finish;
     end
 endmodule   
