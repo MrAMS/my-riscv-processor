@@ -29,7 +29,7 @@ prog_flash : $(filename).bin
     fi
 
 sim:
-	iverilog -y ./ $(filename)_tb.v -o $(filename)_tb
+	iverilog -y ./ -o $(filename)_tb $(filename)_tb.v
 	vvp -n $(filename)_tb -lxt2
 	gtkwave ./wave.vcd
 
