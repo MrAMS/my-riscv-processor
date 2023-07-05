@@ -27,6 +27,7 @@ module SOC(
     reg [31:0] instr;       // current instruction
     `include "riscv_assembly.v"
 
+    integer L0_=56+8;
     initial begin
         PC = 0;
         ADD(x0,x0,x0);
@@ -41,7 +42,19 @@ module SOC(
         SLLI(x3,x3,31);
         SRAI(x3,x3,5);
         SRLI(x1,x3,26);
+
+        ADD(x1,x0,x0);
+        XOR(x1,x1,x1);
+        ADDI(x1,x1,3);
+        
+        XOR(x2,x2,x2);
+        Label(L0_);
+        ADDI(x2,x2,1);
+        BEQ(x1, x2, -8);
+        JAL(x0,LabelRef(L0_));
         EBREAK();
+        endASM();
+
     end
 
     reg [31:0] RegisterBank [0:31];
@@ -81,14 +94,15 @@ module SOC(
     wire [31:0] Jimm={{12{instr[31]}}, instr[19:12],instr[20],instr[30:21],1'b0};
 
     // ALU
+
     wire [31:0] aluIn1 = rs1;
     wire [31:0] aluIn2 = isALUreg ? rs2 : Iimm;
     reg [31:0] aluOut;
 
     wire [31:0] writeBackData;
     wire writeBackEn;
-    assign writeBackData = aluOut; 
-    assign writeBackEn = (state == EXECUTE && (isALUreg || isALUimm)); 
+    assign writeBackData = (isJAL || isJALR) ? (PC + 4) : aluOut;
+    assign writeBackEn = (state == EXECUTE && (isALUreg || isALUimm || isJAL || isJALR)); 
 
     wire [4:0] shamt = isALUreg ? rs2[4:0] : instr[24:20]; // shift amount
     
@@ -113,6 +127,37 @@ module SOC(
         endcase
     end
 
+    // JUMP
+    // JAL  rd, imm         rd<-PC+4; PC<-PC+Jimm
+    // JALR rd, rs1, imm    rd<-PC+4; PC<-rs1+Iimm
+
+    wire [31:0] nextPC = (isBranch && takeBranch) ? PC+Bimm :	       
+                isJAL                    ? PC+Jimm :
+                isJALR                   ? rs1+Iimm :
+                PC+4;
+
+    // BRANCHES
+    // BEQ  rs1, rs2, imm   if(rs1==rs2)PC<-PC+Bimm;
+    // BNE  rs1, rs2, imm   if(rs1!=rs2) PC<-PC+Bimm;
+    // BLT  rs1, rs2, imm   if(rs1<rs2) PC<-PC+Bimm; (signed comparison)
+    // BGE  rs1, rs2, imm   if(rs1>=rs2) PC<-PC+Bimm; (signed comparison)
+    // BLTU rs1, rs2, imm   if(rs1<rs2) PC<-PC+Bimm; (unsigned comparison)
+    // BGEU rs1, rs2, imm   if(rs1>=rs2) PC<-PC+Bimm; (unsigned comparison)
+    
+    reg takeBranch;
+    always @(*) begin
+        case(funct3)
+        3'b000: takeBranch = (rs1 == rs2);
+        3'b001: takeBranch = (rs1 != rs2);
+        3'b100: takeBranch = ($signed(rs1) < $signed(rs2));
+        3'b101: takeBranch = ($signed(rs1) >= $signed(rs2));
+        3'b110: takeBranch = (rs1 < rs2);
+        3'b111: takeBranch = (rs1 >= rs2);
+        default: takeBranch = 1'b0;
+        endcase
+    end
+    
+
 
 
     localparam FETCH_INSTR = 0;
@@ -129,6 +174,9 @@ module SOC(
             
             if(writeBackEn && rdId != 0) begin
                 RegisterBank[rdId] <= writeBackData;
+                `ifdef TEST_BENCH
+                $display("WRITE [%d] <- %d", rdId, writeBackData);
+                `endif
             end
 
             case(state)
@@ -143,7 +191,7 @@ module SOC(
                 end
                 EXECUTE: begin
                     if(!isSYSTEM) begin
-                        PC <= PC + 4;
+                        PC <= nextPC;
                     end
                     state <= FETCH_INSTR;	      
                 end

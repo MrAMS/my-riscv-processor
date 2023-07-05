@@ -1,5 +1,6 @@
 `timescale 1ns/100ps
 `define TEST_BENCH
+`define BENCH
 `include "SOC.v"
 module SOC_tb();
     reg         CLK;
@@ -37,7 +38,7 @@ module SOC_tb();
     begin            
         $dumpfile("wave.vcd");
         $dumpvars(0, SOC_tb);
-        #500;
+        #1000;
         $finish;
     end
 endmodule   
