@@ -70,16 +70,24 @@ module Processor(
     // 0 for logical shift (SRL/SRLI)
     always @(*) begin
         case(funct3)
-    3'b000: aluOut = (funct7[5] & instr[5]) ? 
-                (aluIn1 - aluIn2) : (aluIn1 + aluIn2);
-    3'b001: aluOut = aluIn1 << shamt;
-    3'b010: aluOut = ($signed(aluIn1) < $signed(aluIn2));
-    3'b011: aluOut = (aluIn1 < aluIn2);
-    3'b100: aluOut = (aluIn1 ^ aluIn2);
-    3'b101: aluOut = funct7[5]? ($signed(aluIn1) >>> shamt) : 
-                ($signed(aluIn1) >> shamt); 
-    3'b110: aluOut = (aluIn1 | aluIn2);
-    3'b111: aluOut = (aluIn1 & aluIn2);	
+        // SUB <- funct[7]==1 && instr[5]==1(ALUimm don't have SUB)
+        3'b000: aluOut = (funct7[5] & instr[5]) ? 
+                    (aluIn1 - aluIn2) : (aluIn1 + aluIn2);
+        // left shift
+        3'b001: aluOut = aluIn1 << shamt;
+        // 	signed comparison (<)
+        3'b010: aluOut = ($signed(aluIn1) < $signed(aluIn2));
+        // unsigned comparison (<)
+        3'b011: aluOut = (aluIn1 < aluIn2);
+        // XOR
+        3'b100: aluOut = (aluIn1 ^ aluIn2);
+        // logical right shift(0) or arithmetic right shift(1)
+        3'b101: aluOut = funct7[5]? ($signed(aluIn1) >>> shamt) : 
+                    ($signed(aluIn1) >> shamt); 
+        // OR
+        3'b110: aluOut = (aluIn1 | aluIn2);
+        // AND
+        3'b111: aluOut = (aluIn1 & aluIn2);	
         endcase
     end
 

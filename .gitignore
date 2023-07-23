@@ -2,5 +2,7 @@
 *.bin
 *.asc
 *.vcd
+*.log
+*.json
 # for macOS
 .DS_Store

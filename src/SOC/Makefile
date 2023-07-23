@@ -8,15 +8,17 @@ ${warning iCELink path: $(ICELINK_DIR)}
 
 
 $(filename).json : *.v
-	yosys -p "synth_ice40 -json $(filename).json -top $(TOP)" $(filename).v
+	yosys -p "synth_ice40 -json $(filename).json -top $(TOP)" $(filename).v > $(filename).log
 
 $(filename).asc : $(filename).json io.pcf
-	nextpnr-ice40 --lp1k --package cm36 --json $(filename).json --pcf $(pcf_file) --asc $(filename).asc --freq 48
+	nextpnr-ice40 --lp1k --package cm36 --json $(filename).json --pcf $(pcf_file) --asc $(filename).asc -q
 
 $(filename).bin : $(filename).asc 
 	icepack $(filename).asc $(filename).bin
 
 build : $(filename).bin
+	@echo "Summary"
+	@awk '/2\.44\./, /2\.45\./ {if (!(/2\.44\.|2\.45\./)) print}' $(filename).log
 
 prog_flash : $(filename).bin 
 # use shell command check if directory exist
@@ -35,6 +37,6 @@ sim:
 	gtkwave ./wave.vcd
 
 clean:
-	rm -rf $(filename).blif $(filename).asc $(filename).bin
+	rm -rf $(filename).json $(filename).asc $(filename).bin $(filename).log
 
 .PHONY : clean build prog_flash simlate
